@@ -29,19 +29,19 @@ public class BlueprintsAPIController {
     @Operation(summary = "Obtener todos los planos")
     @ApiResponse(responseCode = "200", description = "Consulta exitosa")
     @GetMapping
-    public ResponseEntity<Set<Blueprint>> getAll() {
-        return ResponseEntity.ok(services.getAllBlueprints());
+    public ResponseEntity<ApiResponseQ<Set<Blueprint>>> getAll() {
+        return ResponseEntity.ok(new ApiResponseQ<>(200, "Consulta exitosa", services.getAllBlueprints()));
     }
 
     // GET /blueprints/{author}
     @Operation(summary = "Obtener todos los planos por autor")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Consulta exitosa"), @ApiResponse(responseCode = "404", description = "Recurso no existente o no se enceuntra")})
     @GetMapping("/{author}")
-    public ResponseEntity<?> byAuthor(@PathVariable String author) {
+    public ResponseEntity<ApiResponseQ<?>> byAuthor(@PathVariable String author) {
         try {
-            return ResponseEntity.ok(services.getBlueprintsByAuthor(author));
+            return ResponseEntity.ok( new ApiResponseQ<>(200, "Consulta exitosa", services.getBlueprintsByAuthor(author)));
         } catch (BlueprintNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseQ<>(404, e.getMessage(), null));
         }
     }
 
@@ -51,25 +51,24 @@ public class BlueprintsAPIController {
     @GetMapping("/{author}/{bpname}")
     public ResponseEntity<?> byAuthorAndName(@PathVariable String author, @PathVariable String bpname) {
         try {
-            return ResponseEntity.ok(services.getBlueprint(author, bpname));
+            return ResponseEntity.ok(new ApiResponseQ<>(200, "Consulta exitosa", services.getBlueprint(author, bpname)));
         } catch (BlueprintNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseQ<>(404, e.getMessage(), null));
         }
     }
 
     // POST /blueprints
     @Operation(summary = "Crear plano")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Creación exitosa"), @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Creación exitosa"), @ApiResponse(responseCode = "400", description = "Datos inválidos"),
     })
     @PostMapping
     public ResponseEntity<?> add(@Valid @RequestBody NewBlueprintRequest req) {
         try {
             Blueprint bp = new Blueprint(req.author(), req.name(), req.points());
             services.addNewBlueprint(bp);
-            return ResponseEntity.status(HttpStatus.CREATED).build();
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponseQ<>(201, "Creación exitosa", bp));
         } catch (BlueprintPersistenceException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponseQ<>(401, "DAtos inválidos", null));
         }
     }
 
@@ -81,9 +80,9 @@ public class BlueprintsAPIController {
                                       @RequestBody Point p) {
         try {
             services.addPoint(author, bpname, p.x(), p.y());
-            return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new ApiResponseQ<>(202, "Punto agregado exitosamente", null));
         } catch (BlueprintNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponseQ<>(404, e.getMessage(), null));
         }
     }
 
